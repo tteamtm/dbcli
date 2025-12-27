@@ -1,0 +1,59 @@
+name: Publish Release (zip)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for zip names (e.g. 1.2.3). If empty, tries to derive from ref.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          input_version="${{ github.event.inputs.version }}"
+          if [ -n "$input_version" ]; then
+            v="$input_version"
+          else
+            ref_name="${GITHUB_REF_NAME:-}"
+            if [[ "$ref_name" == v* ]]; then
+              v="${ref_name#v}"
+            else
+              v="0.0.0-dev"
+            fi
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Using version: $v"
+
+      - name: Publish all platforms
+        shell: pwsh
+        run: |
+          pwsh ./publish-all.ps1 -Platform all -Version "${{ steps.ver.outputs.version }}"
+
+      - name: Create GitHub Release and upload zips
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dbcli-*.zip
+          generate_release_notes: true

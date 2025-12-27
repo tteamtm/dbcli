@@ -21,7 +21,10 @@
 [CmdletBinding()]
 param(
     # all | windows | linux | macos | win-x64 | win-arm64 | linux-x64 | linux-arm64 | osx-x64 | osx-arm64
-    [Parameter()][string]$Platform = "all"
+    [Parameter()][string]$Platform = "all",
+
+    # Version string used for zip naming (e.g. 1.2.3). In CI, pass the tag version.
+    [Parameter()][string]$Version
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,7 +40,7 @@ try {
 Write-Host "🚀 DbCli Multi-Platform Publisher" -ForegroundColor Cyan
 Write-Host "================================`n" -ForegroundColor Cyan
 
-$version = "1.0.0"
+$version = if ($Version -and -not [string]::IsNullOrWhiteSpace($Version)) { $Version.Trim() } else { "0.0.0-dev" }
 
 # Platform configurations
 $platforms = @(
