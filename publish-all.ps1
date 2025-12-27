@@ -134,15 +134,10 @@ foreach ($tp in $targetPlatforms) {
             
             # Copy skills directory
             Copy-Item ".\skills" "$distDir\" -Recurse -Force -ErrorAction SilentlyContinue
-            
-            # Copy INSTALL.md based on platform
-            if ($tp['Runtime'] -like "win-*") {
-                Copy-Item ".\dist\INSTALL.md" "$distDir\" -Force -ErrorAction SilentlyContinue
-                Copy-Item ".\dist\INSTALL_CN.md" "$distDir\" -Force -ErrorAction SilentlyContinue
-            } else {
-                Copy-Item ".\dist-linux\INSTALL.md" "$distDir\" -Force -ErrorAction SilentlyContinue
-                Copy-Item ".\dist-linux\INSTALL_CN.md" "$distDir\" -Force -ErrorAction SilentlyContinue
-            }
+
+            # Remove README docs from published artifacts (keep SKILL.md files)
+            Remove-Item "$distDir\README*.md" -Force -ErrorAction SilentlyContinue
+            Remove-Item "$distDir\skills\README*.md" -Force -ErrorAction SilentlyContinue
             
             # Create zip
             $zipName = "dbcli-$($tp['Runtime'])-v$version.zip"

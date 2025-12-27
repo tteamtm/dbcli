@@ -15,6 +15,45 @@ This guide explains how to integrate DbCli skills with various AI coding assista
 
 ---
 
+## DbCli CLI Quick Notes (Applies Everywhere)
+
+DbCli uses a consistent command pattern:
+
+```bash
+dbcli <command> [arguments] [options]
+```
+
+**Recommended**: command-first (shown above).
+
+**Compatibility**: DbCli also accepts a legacy style where common options appear before the subcommand:
+
+```bash
+dbcli [common options] <command> [arguments]
+```
+
+Common options:
+
+- `-c, --connection`: Connection string
+- `-t, --db-type`: Database type (sqlite, sqlserver, mysql, postgresql, oracle, dm, gaussdb, etc.)
+- `-f, --format`: Output format (json, table, csv)
+- `-F, --file`: SQL file path
+
+Config file:
+
+```bash
+dbcli query "SELECT 1" --config appsettings.json
+```
+
+Environment variables (useful for sensitive connection strings):
+
+```bash
+export DBCLI_CONNECTION="Data Source=app.db"
+export DBCLI_DBTYPE="sqlite"
+dbcli query "SELECT * FROM Users"
+```
+
+---
+
 ## Table of Contents
 
 1. [Claude Code Integration](#1-claude-code-integration)

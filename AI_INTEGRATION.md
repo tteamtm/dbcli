@@ -1,15 +1,10 @@
-# DbCli - AI Assistant Integration Guide
+# DbCli - AI Assistant Integration (Redirect)
 
-Using DbCli with GitHub Copilot, Codex, and other AI programming assistants.
+The canonical, up-to-date integration guide is now:
 
-## Overview
+- `skills/INTEGRATION.md`
 
-DbCli is designed to work seamlessly with AI programming assistants like:
-- **GitHub Copilot**
-- **OpenAI Codex**
-- **Claude Code**
-- **Gemini CLI**
-- **Cline/Roo/Kilo**
+This file is kept as a stable entrypoint for older links, but the detailed, maintained content lives in `skills/INTEGRATION.md`.
 
 ## Quick Start for AI Assistants
 
