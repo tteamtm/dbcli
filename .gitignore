@@ -38,7 +38,6 @@ test_ps.db
 .deployment/
 
 .claude/
-.github/
 dist-*/
 *.zip
 test-deploy/
