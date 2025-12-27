@@ -1,0 +1,44 @@
+# DbCli
+
+# Build output
+[Bb]in/
+[Oo]bj/
+publish/
+publish-linux/
+
+# Rider / VS Code / VS
+.idea/
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# PowerShell / shell transient
+*.tmp
+*.swp
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Local database files (generated during testing/dev)
+dbcli.db
+test_ps.db
+
+# Local deployment scratch dirs (if created by scripts)
+.deployment/
+
+.claude/
+.github/
+dist-*/
+*.zip
+test-deploy/
