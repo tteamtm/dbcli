@@ -389,10 +389,8 @@ Skills follow the [Agent Skills Specification](https://agentskills.io/specificat
 
 - [Agent Skills Specification](https://agentskills.io/specification)
 - [Integration Guide](INTEGRATION.md) - How to integrate with AI assistants
-- [Installation Guide](INSTALL.md) - Detailed installation instructions
 - [Connection Strings](CONNECTION_STRINGS.md) - 30+ database examples
 - [DbCli Documentation](../README.md)
-- [AI Integration Guide](../AI_INTEGRATION.md)
 - [Connection String Reference](CONNECTION_STRINGS.md)
 
 ## License
