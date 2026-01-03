@@ -1,15 +1,21 @@
 # DbCli Skills - AI Agent Integration Guide
 
-This guide explains how to integrate DbCli skills with various AI coding assistants. DbCli skills follow the [Agent Skills Specification](https://agentskills.io/specification), making them compatible with multiple platforms.
+This guide explains how to integrate DbCli skills with various AI coding assistants. DbCli skills follow the [Agent Skills Specification](https://agentskills.io/specification), making them compatible with 10+ coding agents.
 
 ## Supported AI Assistants
 
 - ✅ **Claude Code** (Anthropic)
-- ✅ **GitHub Copilot** (OpenAI Codex)
-- ✅ **OpenAI Codex** (Direct API)
+- ✅ **Claude (Web/App)** (ZIP skills upload)
+- ✅ **GitHub Copilot** (Microsoft VS Code Extension)
+- ✅ **OpenAI Codex** (Codex CLI)
+- ✅ **OpenAI-compatible API** (Direct API)
 - ✅ **Cursor** (AI-powered IDE)
+- ✅ **Gemini Code Assist** (VS Code Extension)
 - ✅ **Gemini-Cli** (Google)
-- ✅ **Cline/Roo/Kilo** (VS Code Extensions)
+- ✅ **Cline** (VS Code Extension)
+- ✅ **Roo Code** (VS Code Extension)
+- ✅ **Kilo Code** (VS Code Extension)
+- ✅ **and more...**
 
 ---
 
@@ -118,7 +124,7 @@ DbCli Execution Rules (PATH + Safety)
 1. [Claude Code Integration](#1-claude-code-integration)
 2. [GitHub Copilot Integration](#2-github-copilot-integration)
 3. [OpenAI Codex Integration](#3-openai-codex-integration)
-4. [OpenAI Codex (Direct API)](#4-openai-codex-direct-api)
+4. [OpenAI-compatible API (Direct API)](#4-openai-compatible-api-direct-api)
 5. [VS Code Extensions (Cline/Roo/Kilo)](#5-vs-code-extensions-clinerookilo)
 6. [Cursor IDE](#6-cursor-ide)
 7. [Gemini-Cli](#7-gemini-cli)
@@ -448,11 +454,11 @@ ls .codex/skills/dbcli/          # REPO
 
 ---
 
-## 4. OpenAI Codex (Direct API)
+## 4. OpenAI-compatible API (Direct API)
 
 ### Setup Skills Context
 
-When using OpenAI API directly, include skills in system context:
+When using an OpenAI-compatible API directly, include skills in system context:
 
 ```python
 import openai

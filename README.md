@@ -32,7 +32,7 @@ CLI routing is implemented with ConsoleAppFramework.
 
 ## Features
 
-- Supports 30+ databases (see Supported Databases below)
+- Supports 30+ databases (see [Supported Databases](#supported-databases))
 - Multiple output formats: JSON, Table, CSV
 - Interactive SQL mode
 - Configurable connection strings (command line, config file, environment variables)
@@ -58,7 +58,7 @@ DbCli follows the **[Agent Skills Specification](https://agentskills.io)** - a u
 - ✅ **Discover automatically** - No manual configuration needed
 - ✅ **Understand context** - Clear descriptions, examples, and error handling
 - ✅ **Execute safely** - Built-in validation and backup recommendations
-- ✅ **Share across Platforms and Coding Agents** - Works with Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Gemini-Cli, Cline/Roo/Kilo, and more on Windows, macOS, Linux
+- ✅ **Share across Platforms and Coding Agents** - Works with Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Gemini Code Assist, Gemini-Cli, Cline/Roo/Kilo, and more on Windows, macOS, Linux
 
 ### 🎯 Use Cases & Scenarios
 
@@ -129,7 +129,7 @@ python3 <path-to-extracted-zip>/deploy-skills.py --target all --force
 
 **Rules integration (summary):** deployment appends DbCli execution rules (PATH + safety) into common rule files if present:
 `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.vscode/context.md`, `.gemini/skills.yaml`, and `.github/copilot-instructions.md`.
-See `skills/INTEGRATION.md` for full details.
+See [`skills/INTEGRATION.md`](skills/INTEGRATION.md) for full details.
 
 ---
 
@@ -869,7 +869,7 @@ echo "User count: $count"
 |----------|-------------|
 | [README.md](README.md) | This file - Project overview and quick reference |
 | [skills/README.md](skills/README.md) | Skills overview and usage guide |
-| [skills/INTEGRATION.md](skills/INTEGRATION.md) | AI assistant integration for 10+ platforms |
+| [skills/INTEGRATION.md](skills/INTEGRATION.md) | AI assistant integration for 10+ coding agents |
 | [skills/CONNECTION_STRINGS.md](skills/CONNECTION_STRINGS.md) | Connection string examples for 30+ databases |
 
 ---

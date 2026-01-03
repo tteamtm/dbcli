@@ -4,7 +4,7 @@ Universal agent skills for DbCli - cross-database CLI tool supporting 30+ databa
 
 ## Skills Specification Format
 
-These skills conform to the [Agent Skills Specification](https://agentskills.io/specification) - a universal format compatible with multiple AI coding assistants including Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Gemini-Cli, Cline/Roo/Kilo, etc.
+These skills conform to the [Agent Skills Specification](https://agentskills.io/specification) - a universal format compatible with 10+ coding agents (e.g. Claude Code, Claude Web/App, GitHub Copilot, OpenAI Codex, Cursor, Gemini Code Assist, Gemini-Cli, and VS Code extensions like Cline, Roo Code, Kilo Code).
 
 ## Available Skills
 
@@ -174,12 +174,16 @@ python3 ./deploy-skills.py --target all
 
 **Supported AI Assistants:**
 - Claude Code
+- Claude (Web/App)
 - GitHub Copilot
 - OpenAI Codex
+- OpenAI-compatible API (Direct)
 - Cursor
+- Gemini Code Assist
 - Gemini-Cli
-- Cline/Roo/Kilo
-- And more...
+- Cline
+- Roo Code
+- Kilo Code
 
 See the [Integration Guide](INTEGRATION.md) and [DbCli README](../README.md) for details.
 
