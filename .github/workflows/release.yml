@@ -1,0 +1,94 @@
+name: Publish Release (zip)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.0.0). Leave empty when running on tag push.'
+        required: false
+        default: ''
+      version:
+        description: 'Version for zip names (e.g. 1.2.3). If empty, tries to derive from ref.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          input_tag="${{ github.event.inputs.tag }}"
+          input_version="${{ github.event.inputs.version }}"
+
+          if [ -n "$input_tag" ]; then
+            tag="$input_tag"
+          else
+            tag="${GITHUB_REF_NAME:-}"
+          fi
+
+          if [[ "$tag" != v* ]]; then
+            echo "This workflow must run on a tag (v*) or be provided inputs.tag=v*" >&2
+            exit 1
+          fi
+
+          if [ -n "$input_version" ]; then
+            v="$input_version"
+          else
+            v="${tag#v}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Using tag: $tag"
+          echo "Using version: $v"
+
+      - name: Publish all platforms
+        shell: pwsh
+        run: |
+          pwsh ./publish-all.ps1 -Platform all -Version "${{ steps.ver.outputs.version }}"
+
+      - name: Verify zip artifacts exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la
+          count=$(ls -1 dbcli-*.zip 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$count" -eq 0 ]; then
+            echo "No dbcli-*.zip produced; failing so release doesn't contain only source code archives." >&2
+            exit 1
+          fi
+          echo "Found $count zip(s)."
+
+      - name: Upload zip artifacts (for debugging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbcli-zips-${{ steps.ver.outputs.tag }}
+          path: dbcli-*.zip
+
+      - name: Create GitHub Release and upload zips
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          files: |
+            dbcli-*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
