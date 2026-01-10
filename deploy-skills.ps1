@@ -685,44 +685,155 @@ function Deploy-CopilotInstructions {
     
     $githubDir = Join-Path $WorkDirPath ".github"
     $instructionsFile = Join-Path $githubDir "copilot-instructions.md"
+    $configFile = Join-Path $githubDir "copilot-config.yml"
+
+    function Patch-CopilotConfig {
+        param(
+            [string]$Path,
+            [string]$SkillsRoot
+        )
+
+        $block = @"
+skills:
+  enabled: true
+  paths:
+    - $SkillsRoot
+"@
+
+        if (-not (Test-Path $Path)) {
+            Set-Content -Path $Path -Value $block -Encoding UTF8
+            Write-Success "GitHub Copilot config created at $Path"
+            return
+        }
+
+        $lines = Get-Content -Path $Path -ErrorAction SilentlyContinue
+        if (-not $lines) { $lines = @() }
+
+        $needleRegex = "^\s*-\s*['""]?$([regex]::Escape($SkillsRoot))['""]?\s*$"
+        if ($lines | Where-Object { $_ -match $needleRegex } | Select-Object -First 1) {
+            Write-Info "GitHub Copilot config already contains skills path (no changes)"
+            return
+        }
+
+        $skillsIdx = -1
+        $skillsIndent = 0
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^(\s*)skills:\s*$') {
+                $skillsIdx = $i
+                $skillsIndent = $Matches[1].Length
+                break
+            }
+        }
+
+        if ($skillsIdx -lt 0) {
+            $updated = ($lines + @("" , "") + ($block -split "`r?`n")) | Where-Object { $_ -ne $null }
+            Set-Content -Path $Path -Value $updated -Encoding UTF8
+            Write-Success "GitHub Copilot config patched at $Path"
+            return
+        }
+
+        $endIdx = $lines.Count
+        for ($j = $skillsIdx + 1; $j -lt $lines.Count; $j++) {
+            $s = $lines[$j].Trim()
+            if (-not $s -or $s.StartsWith('#')) { continue }
+            if (($lines[$j] -match '^(\s*)') -and ($Matches[1].Length -le $skillsIndent) -and -not ($lines[$j].TrimStart().StartsWith('-'))) {
+                $endIdx = $j
+                break
+            }
+        }
+
+        $pathsIdx = -1
+        $pathsIndent = 0
+        for ($j = $skillsIdx + 1; $j -lt $endIdx; $j++) {
+            if ($lines[$j] -match '^(\s*)paths:\s*$') {
+                $pathsIdx = $j
+                $pathsIndent = $Matches[1].Length
+                break
+            }
+        }
+
+        if ($pathsIdx -lt 0) {
+            $insertIdx = $skillsIdx + 1
+            $insertLines = @(
+                (" " * ($skillsIndent + 2)) + "paths:",
+                (" " * ($skillsIndent + 4)) + "- $SkillsRoot"
+            )
+            $before = $lines[0..($insertIdx - 1)]
+            $after = @()
+            if ($insertIdx -lt $lines.Count) { $after = $lines[$insertIdx..($lines.Count - 1)] }
+            $updated = @($before + $insertLines + $after)
+            Set-Content -Path $Path -Value $updated -Encoding UTF8
+            Write-Success "GitHub Copilot config patched at $Path"
+            return
+        }
+
+        $listIndent = $pathsIndent + 2
+        $insertAt = $pathsIdx + 1
+        while ($insertAt -lt $endIdx) {
+            if ($lines[$insertAt] -match "^\s{$listIndent,}-\s+\S") { $insertAt++; continue }
+            if (-not $lines[$insertAt].Trim() -or $lines[$insertAt].Trim().StartsWith('#')) { $insertAt++; continue }
+            break
+        }
+
+        $newLine = (" " * $listIndent) + "- $SkillsRoot"
+        $before = $lines[0..($insertAt - 1)]
+        $after = @()
+        if ($insertAt -lt $lines.Count) { $after = $lines[$insertAt..($lines.Count - 1)] }
+        $updated = @($before + @($newLine) + $after)
+        Set-Content -Path $Path -Value $updated -Encoding UTF8
+        Write-Success "GitHub Copilot config patched at $Path"
+    }
     
     # Create .github if not exists
     if (-not (Test-Path $githubDir)) {
         New-Item -ItemType Directory -Force -Path $githubDir | Out-Null
     }
     
-    # Check if already exists
+    $writeInstructions = $true
     if ((Test-Path $instructionsFile) -and -not $Force) {
-        Write-Warning "copilot-instructions.md already exists"
-        $response = Read-Host "Overwrite? (y/N)"
-        if ($response -ne 'y') {
-            Write-Info "Skipping Copilot deployment"
-            return
+        Write-Warning "copilot-instructions.md already exists (skipping; use -Force to overwrite)"
+        $writeInstructions = $false
+    }
+
+    if ($writeInstructions) {
+        # Read template from INTEGRATION.md
+        $integrationPath = Join-Path $SkillsSourceDir "INTEGRATION.md"
+        if (-not (Test-Path $integrationPath)) {
+            Write-Error-Custom "INTEGRATION.md not found"
+        }
+        else {
+            $integrationDoc = Get-Content $integrationPath -Raw
+
+            # Extract Copilot section
+            $copilotSection = $integrationDoc -match '## 2\. GitHub Copilot Integration[\s\S]*?(?=## 3\.)'
+
+            if ($Matches) {
+                $copilotContent = $Matches[0]
+
+                # Extract the markdown content from Method 1
+                if ($copilotContent -match '```markdown\s*([\s\S]*?)\s*```') {
+                    $instructionsContent = $Matches[1]
+                    Set-Content -Path $instructionsFile -Value $instructionsContent -Encoding UTF8
+                    Write-Success "GitHub Copilot instructions created at $instructionsFile"
+                    Write-Info "Copilot will use these instructions automatically"
+                    Append-DbCliRules -IncludeCopilot
+                } else {
+                    Write-Error-Custom "Could not extract Copilot instructions template"
+                }
+            } else {
+                Write-Error-Custom "Could not find Copilot section in INTEGRATION.md"
+            }
         }
     }
-    
-    # Read template from INTEGRATION.md
-    $integrationDoc = Get-Content (Join-Path $SkillsSourceDir "INTEGRATION.md") -Raw
-    
-    # Extract Copilot section
-    $copilotSection = $integrationDoc -match '## 2\. GitHub Copilot Integration[\s\S]*?(?=## 3\.)'
-    
-    if ($Matches) {
-        $copilotContent = $Matches[0]
-        
-        # Extract the markdown content from Method 1
-        if ($copilotContent -match '```markdown\s*([\s\S]*?)\s*```') {
-            $instructionsContent = $Matches[1]
-            Set-Content -Path $instructionsFile -Value $instructionsContent -Encoding UTF8
-            Write-Success "GitHub Copilot instructions created at $instructionsFile"
-            Write-Info "Copilot will use these instructions automatically"
-            Append-DbCliRules -IncludeCopilot
-        } else {
-            Write-Error-Custom "Could not extract Copilot instructions template"
-        }
-    } else {
-        Write-Error-Custom "Could not find Copilot section in INTEGRATION.md"
+
+    # Patch copilot-config.yml (Agent Skills path configuration; do not overwrite)
+    $skillsRoot = "skills"
+    $nestedSkillsDir = Join-Path $WorkDirPath "skills/dbcli"
+    if (Test-Path $nestedSkillsDir) {
+        $anySkill = Get-ChildItem -Path $nestedSkillsDir -Recurse -Filter "SKILL.md" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($anySkill) { $skillsRoot = "skills/dbcli" }
     }
+    Patch-CopilotConfig -Path $configFile -SkillsRoot $skillsRoot
 }
 
 function Deploy-CodexSkills {

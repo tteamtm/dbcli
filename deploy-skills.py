@@ -473,46 +473,162 @@ def deploy_copilot_instructions(force=False):
     
     github_dir = Path(".github")
     instructions_file = github_dir / "copilot-instructions.md"
+    config_file = github_dir / "copilot-config.yml"
     
     # Create .github if not exists
     github_dir.mkdir(exist_ok=True)
-    
-    # Check if already exists
-    if instructions_file.exists() and not force:
-        print_warning("copilot-instructions.md already exists")
-        response = input("Overwrite? (y/N): ").strip().lower()
-        if response != 'y':
-            print_info("Skipping Copilot deployment")
+
+    def detect_copilot_skill_root() -> str:
+        nested = Path("skills") / "dbcli"
+        if nested.exists() and any(p.is_file() and p.name.lower() == "skill.md" for p in nested.rglob("*")):
+            return "skills/dbcli"
+
+        flat = Path("skills")
+        if flat.exists() and any(
+            p.is_file() and p.name.lower() == "skill.md" for p in flat.rglob("*")
+        ):
+            return "skills"
+
+        return "skills"
+
+    def patch_copilot_config(path: Path, skills_root: str):
+        block = (
+            "skills:\n"
+            "  enabled: true\n"
+            "  paths:\n"
+            f"    - {skills_root}\n"
+        )
+
+        if not path.exists():
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(block)
+            print_success(f"GitHub Copilot config created at {path}")
             return
+
+        existing = path.read_text(encoding="utf-8", errors="ignore")
+        needle_item = re.compile(rf"(?m)^\s*-\s*['\"]?{re.escape(skills_root)}['\"]?\s*$")
+        needle_inline = re.compile(rf"(?m)^\s*paths:\s*\[.*\b{re.escape(skills_root)}\b.*\]\s*$")
+        if needle_item.search(existing) or needle_inline.search(existing):
+            print_info("GitHub Copilot config already contains skills path (no changes)")
+            return
+
+        lines = existing.splitlines(keepends=True)
+
+        def leading_spaces(s: str) -> int:
+            return len(s) - len(s.lstrip(" "))
+
+        skills_idx = None
+        skills_indent = 0
+        for i, line in enumerate(lines):
+            if re.match(r"^\s*skills:\s*(#.*)?$", line):
+                skills_idx = i
+                skills_indent = leading_spaces(line)
+                break
+
+        if skills_idx is None:
+            updated = existing.rstrip("\r\n") + "\n\n" + block
+            path.write_text(updated, encoding="utf-8")
+            print_success(f"GitHub Copilot config patched at {path}")
+            return
+
+        end_idx = len(lines)
+        for j in range(skills_idx + 1, len(lines)):
+            stripped = lines[j].strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if leading_spaces(lines[j]) <= skills_indent and not lines[j].lstrip().startswith("-"):
+                end_idx = j
+                break
+
+        paths_idx = None
+        paths_indent = None
+        for j in range(skills_idx + 1, end_idx):
+            m = re.match(r"^(\s*)paths:\s*(#.*)?$", lines[j])
+            if m:
+                paths_idx = j
+                paths_indent = len(m.group(1))
+                break
+
+            m_inline = re.match(r"^(\s*)paths:\s*\[(.*)\]\s*$", lines[j])
+            if m_inline:
+                indent = m_inline.group(1)
+                inside = m_inline.group(2).strip()
+                items = [x.strip() for x in inside.split(",") if x.strip()]
+                if skills_root not in [x.strip("'\"") for x in items]:
+                    items.append(skills_root)
+                    lines[j] = f"{indent}paths: [{', '.join(items)}]\n"
+                updated = "".join(lines)
+                path.write_text(updated, encoding="utf-8")
+                print_success(f"GitHub Copilot config patched at {path}")
+                return
+
+        if paths_idx is None:
+            insert_idx = skills_idx + 1
+            while insert_idx < end_idx and lines[insert_idx].strip().startswith("#"):
+                insert_idx += 1
+            insert_block = (
+                " " * (skills_indent + 2) + "paths:\n" +
+                " " * (skills_indent + 4) + f"- {skills_root}\n"
+            )
+            lines.insert(insert_idx, insert_block)
+            updated = "".join(lines)
+            path.write_text(updated, encoding="utf-8")
+            print_success(f"GitHub Copilot config patched at {path}")
+            return
+
+        list_indent = (paths_indent or 0) + 2
+        insert_at = paths_idx + 1
+        while insert_at < end_idx:
+            if re.match(rf"^\s{{{list_indent},}}-\s+\S", lines[insert_at]):
+                insert_at += 1
+                continue
+            if lines[insert_at].strip().startswith("#") or not lines[insert_at].strip():
+                insert_at += 1
+                continue
+            break
+
+        lines.insert(insert_at, " " * list_indent + f"- {skills_root}\n")
+        updated = "".join(lines)
+        path.write_text(updated, encoding="utf-8")
+        print_success(f"GitHub Copilot config patched at {path}")
     
-    # Read template from INTEGRATION.md
-    integration_path = SKILLS_SOURCE / "INTEGRATION.md"
-    if not integration_path.exists():
-        print_error("INTEGRATION.md not found")
-        return
-    
-    with open(integration_path, 'r', encoding='utf-8') as f:
-        integration_content = f.read()
-    
-    # Extract Copilot section
-    pattern = r'```markdown\s*([\s\S]*?)\s*```'
-    copilot_section = re.search(r'## 2\. GitHub Copilot Integration[\s\S]*?(?=## 3\.)', integration_content)
-    
-    if copilot_section:
-        copilot_text = copilot_section.group(0)
-        match = re.search(pattern, copilot_text)
-        
-        if match:
-            instructions_content = match.group(1)
-            with open(instructions_file, 'w', encoding='utf-8') as f:
-                f.write(instructions_content)
-            print_success(f"GitHub Copilot instructions created at {instructions_file}")
-            print_info("Copilot will use these instructions automatically")
-            append_dbcli_rules(include_copilot=True)
+    write_instructions = True
+    if instructions_file.exists() and not force:
+        print_warning("copilot-instructions.md already exists (skipping; use --force to overwrite)")
+        write_instructions = False
+
+    if write_instructions:
+        # Read template from INTEGRATION.md
+        integration_path = SKILLS_SOURCE / "INTEGRATION.md"
+        if not integration_path.exists():
+            print_error("INTEGRATION.md not found")
         else:
-            print_error("Could not extract Copilot instructions template")
-    else:
-        print_error("Could not find Copilot section in INTEGRATION.md")
+            with open(integration_path, 'r', encoding='utf-8') as f:
+                integration_content = f.read()
+
+            # Extract Copilot section
+            pattern = r'```markdown\s*([\s\S]*?)\s*```'
+            copilot_section = re.search(r'## 2\. GitHub Copilot Integration[\s\S]*?(?=## 3\.)', integration_content)
+
+            if copilot_section:
+                copilot_text = copilot_section.group(0)
+                match = re.search(pattern, copilot_text)
+
+                if match:
+                    instructions_content = match.group(1)
+                    with open(instructions_file, 'w', encoding='utf-8') as f:
+                        f.write(instructions_content)
+                    print_success(f"GitHub Copilot instructions created at {instructions_file}")
+                    print_info("Copilot will use these instructions automatically")
+                    append_dbcli_rules(include_copilot=True)
+                else:
+                    print_error("Could not extract Copilot instructions template")
+            else:
+                print_error("Could not find Copilot section in INTEGRATION.md")
+
+    # Patch copilot-config.yml (Agent Skills path configuration; do not overwrite)
+    skills_root = detect_copilot_skill_root()
+    patch_copilot_config(config_file, skills_root)
 
 def deploy_workspace_skills(force=False):
     """Deploy skills to workspace directory"""

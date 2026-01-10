@@ -441,14 +441,15 @@ Place skills in your project:
 
 ```
 your-project/
-├── .github/
-│   └── copilot-instructions.md    # References skills below
-├── skills/
-│   └── dbcli/                     # Copy skills here
-│       ├── dbcli-query/
-│       ├── dbcli-exec/
-│       └── ...
-└── src/
+  .github/
+    copilot-instructions.md
+    copilot-config.yml
+  skills/
+    dbcli-query/
+    dbcli-exec/
+    dbcli-db-ddl/
+    dbcli-tables/
+    ...
 ```
 
 ### Method 3: Repository Copilot Configuration
@@ -459,16 +460,11 @@ Create `.github/copilot-config.yml`:
 skills:
   enabled: true
   paths:
-    - skills/dbcli
-  
-dbcli:
-  default_connection: "Data Source=app.db"
-  safety_mode: true
-  require_backup_for:
-    - UPDATE
-    - DELETE
-    - DROP
-    - ALTER
+    # This repo layout: skills/* (dbcli-query, dbcli-exec, ...)
+    - skills
+
+    # If you vendor DbCli skills under a nested folder (e.g. skills/dbcli/*), use:
+    # - skills/dbcli
 ```
 
 ---
